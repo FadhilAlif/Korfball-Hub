@@ -10,6 +10,7 @@ AI AGENT **DILARANG KERAS** melanggar aturan-aturan berikut:
 1. **NO DIRECT DB ACCESS DARI FRONTEND**: Frontend (Next.js) sama sekali tidak boleh memanggil database NeonDB secara langsung. Semua komunikasi data wajib melalui layer HTTP ke REST API NestJS.
 2. **NO CLIENT-SIDE CALCULATIONS**: Perhitungan agregat, result pertandingan, *attendance rate*, atau komputasi metrik final harus dikalkulasi dan di-serve oleh NestJS (Backend). Frontend hanya bertugas menampilkan (rendering).
 3. **ONLY SPECIFIED STACK**: Jangan mengusulkan atau meng-install package di luar arsitektur yang telah disepakati (misal: Jangan pakai Prisma jika sudah disepakati TypeORM, Jangan pakai Fetch jika sudah disepakati Axios).
+4. **MANDATORY SWAGGER / OPENAPI REGISTRATION**: Setiap kali membuat Controller atau Endpoint baru pada Backend NestJS, AI Agent dan Developer **WAJIB MENDAFTARKAN DAN MENDEKORASINYA SECARA LENGKAP PADA SWAGGER** (`@ApiTags`, `@ApiOperation`, `@ApiResponse`, `@ApiBearerAuth`, `@ApiParam`, `@ApiBody`). Dilarang keras membiarkan endpoint tanpa dokumentasi Swagger. Akses UI Swagger selalu tersedia di `http://localhost:4000/api/docs`.
 
 ---
 
@@ -60,6 +61,7 @@ Ikuti arsitektur standar NestJS:
 - `Controllers`: Hanya menangani HTTP Request, DTO validation (via `class-validator` / Zod), dan return format.
 - `Services`: Menyimpan *core business logic*, perhitungan agregat.
 - `Entities` (TypeORM): Definisi skema tabel.
+- `Swagger Decorators (WAJIB)`: Setiap Controller WAJIB didekorasi `@ApiTags('[Nama Modul]')`, dan setiap handler method WAJIB didekorasi `@ApiOperation({ summary: '...' })`, `@ApiResponse()`, serta `@ApiBearerAuth('JWT-auth')` untuk route terproteksi.
 
 ### Frontend (Next.js):
 - **Axios Instance**: Buat *custom axios instance* (`src/lib/axios.ts`) untuk mengelola Bearer token (Neon Auth) & global error handling.
