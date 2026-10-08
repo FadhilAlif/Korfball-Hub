@@ -12,6 +12,7 @@ import { MatchesModule } from './modules/matches/matches.module.js';
 import { AnnouncementsModule } from './modules/announcements/announcements.module.js';
 import { DocumentsModule } from './modules/documents/documents.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuditModule } from './modules/audit/audit.module.js';
     TypeOrmModule.forRootAsync({
       useFactory: () => getDatabaseConfig(),
     }),
+    AuthModule,
     UsersModule,
     TeamsModule,
     AthletesModule,
