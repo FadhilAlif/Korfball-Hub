@@ -1,0 +1,17 @@
+# AI DOCS
+docs/PROGRESS.md
+
+#Dependencies
+node_modules/
+
+#Build outputs
+dist/
+build/
+.next/
+out/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+coverage/
