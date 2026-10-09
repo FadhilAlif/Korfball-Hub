@@ -42,6 +42,9 @@ export class TrainingAttendance {
   })
   status: AttendanceStatus;
 
+  @Column({ type: 'int', nullable: true })
+  rpe: number | null;
+
   @Column({ type: 'varchar', length: 250, nullable: true })
   notes: string | null;
 
