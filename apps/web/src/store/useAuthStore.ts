@@ -31,6 +31,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (typeof window !== 'undefined') {
       localStorage.setItem('korfball_auth_token', token);
       localStorage.setItem('korfball_auth_user', JSON.stringify(user));
+      document.cookie = `korfball_auth_token=${encodeURIComponent(token)}; path=/; max-age=604800; SameSite=Lax`;
     }
     set({ token, user, athlete, isAuthenticated: true });
   },
@@ -39,6 +40,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (typeof window !== 'undefined') {
       localStorage.removeItem('korfball_auth_token');
       localStorage.removeItem('korfball_auth_user');
+      document.cookie = 'korfball_auth_token=; path=/; max-age=0; SameSite=Lax';
     }
     set({ token: null, user: null, athlete: null, isAuthenticated: false });
   },

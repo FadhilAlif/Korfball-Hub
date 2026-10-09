@@ -8,7 +8,9 @@ import {
   Body,
   Query,
   UseGuards,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -66,6 +68,25 @@ export class MatchesController {
       data: result.items,
       meta: result.summary,
     };
+  }
+
+  @Get('export/csv')
+  @ApiOperation({ summary: 'Ekspor rekap jadwal dan hasil pertandingan ke format CSV' })
+  @ApiQuery({ name: 'season_id', required: false, description: 'Filter berdasarkan ID musim (opsional)' })
+  @ApiResponse({ status: 200, description: 'File CSV berhasil digenerate dan diunduh' })
+  async exportMatchesCsv(
+    @Res() res: Response,
+    @Query('season_id') seasonId?: string,
+  ) {
+    const teamId = 'b0000000-0000-0000-0000-000000000001';
+    const csvContent = await this.matchesService.exportMatchesCsv(teamId, seasonId);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="laporan_pertandingan_korfball_bantul.csv"',
+    );
+    return res.send(csvContent);
   }
 
   @Get(':id')

@@ -12,7 +12,7 @@ import {
   Settings,
   LogOut,
   Shield,
-  Layers,
+  FileText,
   LayoutDashboard,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -72,6 +72,7 @@ export function Sidebar() {
       title: 'Administrative',
       items: [
         { label: 'Announcements', href: '/announcements', icon: Bell },
+        { label: 'Documents & Storage', href: '/documents', icon: FileText },
       ],
     },
   ];

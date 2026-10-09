@@ -45,6 +45,7 @@ export default function LoginPage() {
 
       // 2. Fetch user profile from backend NestJS (/api/v1/auth/me)
       localStorage.setItem('korfball_auth_token', authResult.token);
+      document.cookie = `korfball_auth_token=${encodeURIComponent(authResult.token)}; path=/; max-age=604800; SameSite=Lax`;
       
       const profileRes = await apiClient.get<any, { success: boolean; data: any }>('/auth/me');
       
@@ -57,9 +58,59 @@ export default function LoginPage() {
     } catch (err: any) {
       setErrorMessage(err.message || 'Terjadi kesalahan saat masuk ke sistem.');
       localStorage.removeItem('korfball_auth_token');
+      document.cookie = 'korfball_auth_token=; path=/; max-age=0; SameSite=Lax';
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDemoLogin = (role: 'MANAGER' | 'COACH' | 'ATHLETE' | 'VIEWER') => {
+    let token = 'demo-coach-jwt-token';
+    let user: {
+      id: string;
+      email: string;
+      full_name: string;
+      role: 'MANAGER' | 'COACH' | 'ATHLETE' | 'VIEWER';
+      status: 'ACTIVE' | 'DISABLED';
+    } = {
+      id: 'cb562430-1718-4bd0-8703-cc507758aa30',
+      email: 'coach@korfballbantul.com',
+      full_name: 'Budi Santoso (Coach)',
+      role: 'COACH',
+      status: 'ACTIVE',
+    };
+
+    if (role === 'MANAGER') {
+      token = 'demo-manager-jwt-token';
+      user = {
+        id: '8af9ac81-8b1c-4cda-809c-668f3f5f9d35',
+        email: 'manager@korfballbantul.com',
+        full_name: 'Fadhil Manager',
+        role: 'MANAGER',
+        status: 'ACTIVE',
+      };
+    } else if (role === 'ATHLETE') {
+      token = 'demo-athlete-jwt-token';
+      user = {
+        id: '43aa9df0-afb7-4294-94bc-d2f4961039f2',
+        email: 'kb-01@korfballbantul.com',
+        full_name: 'Andi Pratama',
+        role: 'ATHLETE',
+        status: 'ACTIVE',
+      };
+    } else if (role === 'VIEWER') {
+      token = 'demo-viewer-jwt-token';
+      user = {
+        id: 'e0000000-0000-0000-0000-000000000001',
+        email: 'viewer@korfballbantul.com',
+        full_name: 'Bambang Pengda KONI',
+        role: 'VIEWER',
+        status: 'ACTIVE',
+      };
+    }
+
+    setAuth(token, user);
+    router.push('/dashboard');
   };
 
   return (
@@ -132,11 +183,11 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-3">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex w-full justify-center items-center gap-2 rounded-lg bg-indigo-600 py-2.5 px-4 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition-all cursor-pointer"
+                className="flex w-full justify-center items-center gap-2 rounded-lg bg-[#b91c1c] py-2.5 px-4 text-sm font-semibold text-white shadow-md shadow-red-900/20 hover:bg-[#991b1b] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {isLoading ? (
                   <>
@@ -147,6 +198,50 @@ export default function LoginPage() {
                   <span>Masuk ke Akun</span>
                 )}
               </button>
+
+              <div className="pt-2">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-slate-400 font-semibold">
+                      Atau Masuk Cepat per Role (Mode Uji)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('MANAGER')}
+                    className="flex justify-center items-center gap-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 py-2 px-3 text-xs font-semibold text-slate-700 transition-all border border-slate-200 hover:border-slate-300 cursor-pointer"
+                  >
+                    <span>👔 Manager</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('COACH')}
+                    className="flex justify-center items-center gap-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 py-2 px-3 text-xs font-semibold text-slate-700 transition-all border border-slate-200 hover:border-slate-300 cursor-pointer"
+                  >
+                    <span>📋 Coach</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('ATHLETE')}
+                    className="flex justify-center items-center gap-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 py-2 px-3 text-xs font-semibold text-slate-700 transition-all border border-slate-200 hover:border-slate-300 cursor-pointer"
+                  >
+                    <span>🏃 Athlete</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('VIEWER')}
+                    className="flex justify-center items-center gap-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 py-2 px-3 text-xs font-semibold text-slate-700 transition-all border border-slate-200 hover:border-slate-300 cursor-pointer"
+                  >
+                    <span>👁️ Viewer</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </form>
 

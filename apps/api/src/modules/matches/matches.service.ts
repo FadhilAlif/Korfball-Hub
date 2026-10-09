@@ -9,6 +9,7 @@ import { Match } from './entities/match.entity.js';
 import { MatchSquad } from './entities/match-squad.entity.js';
 import { MatchEvent } from './entities/match-event.entity.js';
 import { Season } from '../teams/entities/season.entity.js';
+import { Team } from '../teams/entities/team.entity.js';
 import { Athlete } from '../athletes/entities/athlete.entity.js';
 import { CreateMatchDto } from './dto/create-match.dto.js';
 import { UpdateMatchDto } from './dto/update-match.dto.js';
@@ -53,15 +54,28 @@ export class MatchesService {
    * Buat jadwal pertandingan baru
    */
   async createMatch(teamId: string, dto: CreateMatchDto): Promise<Match> {
+    if (!teamId || teamId === 'b0000000-0000-0000-0000-000000000001') {
+      const defaultTeam = await this.matchRepo.manager.findOne(Team, { where: {} });
+      if (defaultTeam) {
+        teamId = defaultTeam.id;
+      }
+    }
+
     let seasonId = dto.season_id;
     if (!seasonId) {
       const activeSeason = await this.seasonRepo.findOne({
         where: { team_id: teamId, is_active: true },
       });
       if (!activeSeason) {
-        throw new BadRequestException('Musim aktif tidak ditemukan. Harap tentukan season_id.');
+        // Fallback to any season
+        const anySeason = await this.seasonRepo.findOne({ where: { team_id: teamId } });
+        if (!anySeason) {
+          throw new BadRequestException('Musim aktif tidak ditemukan. Harap tentukan season_id.');
+        }
+        seasonId = anySeason.id;
+      } else {
+        seasonId = activeSeason.id;
       }
-      seasonId = activeSeason.id;
     }
 
     const teamScore = dto.team_score ?? (dto.status === MatchStatus.SCHEDULED ? null : 0);
@@ -90,6 +104,13 @@ export class MatchesService {
    * Ambil daftar pertandingan dan agregasi rekap skor
    */
   async getMatches(teamId: string, seasonId?: string, status?: MatchStatus) {
+    if (!teamId || teamId === 'b0000000-0000-0000-0000-000000000001') {
+      const defaultTeam = await this.matchRepo.manager.findOne(Team, { where: {} });
+      if (defaultTeam) {
+        teamId = defaultTeam.id;
+      }
+    }
+
     const qb = this.matchRepo
       .createQueryBuilder('match')
       .leftJoinAndSelect('match.season', 'season')
@@ -313,5 +334,60 @@ export class MatchesService {
 
     await this.matchRepo.save(match);
     return this.getMatchById(matchId);
+  }
+
+  /**
+   * Ekspor riwayat dan statistik pertandingan ke format CSV
+   */
+  async exportMatchesCsv(teamId: string, seasonId?: string): Promise<string> {
+    if (!teamId || teamId === 'b0000000-0000-0000-0000-000000000001') {
+      const defaultTeam = await this.matchRepo.manager.findOne(Team, { where: {} });
+      if (defaultTeam) {
+        teamId = defaultTeam.id;
+      }
+    }
+
+    const qb = this.matchRepo
+      .createQueryBuilder('match')
+      .leftJoinAndSelect('match.season', 'season')
+      .where('match.team_id = :teamId', { teamId });
+
+    if (seasonId) {
+      qb.andWhere('match.season_id = :seasonId', { seasonId });
+    }
+
+    qb.orderBy('match.match_date', 'DESC');
+
+    const matches = await qb.getMany();
+
+    const headers = [
+      'Tanggal Pertandingan',
+      'Jam',
+      'Kompetisi / Turnamen',
+      'Tim Lawan',
+      'Tuan Rumah / Tandang',
+      'Lokasi / Venue',
+      'Status',
+      'Skor Tim Bantul',
+      'Skor Lawan',
+      'Hasil Pertandingan',
+      'Catatan',
+    ];
+
+    const rows = matches.map((m) => [
+      m.match_date,
+      m.start_time,
+      `"${(m.competition || '-').replace(/"/g, '""')}"`,
+      `"${m.opponent.replace(/"/g, '""')}"`,
+      m.home_away,
+      `"${m.venue.replace(/"/g, '""')}"`,
+      m.status,
+      m.team_score ?? '-',
+      m.opponent_score ?? '-',
+      m.result || 'PENDING',
+      `"${(m.notes || '-').replace(/"/g, '""')}"`,
+    ]);
+
+    return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
   }
 }

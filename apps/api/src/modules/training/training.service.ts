@@ -9,6 +9,8 @@ import { TrainingSession } from './entities/training-session.entity.js';
 import { TrainingActivity } from './entities/training-activity.entity.js';
 import { TrainingAttendance } from './entities/training-attendance.entity.js';
 import { Athlete } from '../athletes/entities/athlete.entity.js';
+import { Team } from '../teams/entities/team.entity.js';
+import { User } from '../users/entities/user.entity.js';
 import {
   CreateTrainingSessionDto,
   CreateActivityDto,
@@ -39,6 +41,20 @@ export class TrainingService {
     teamId: string,
     dto: CreateTrainingSessionDto,
   ): Promise<TrainingSession> {
+    if (!teamId || teamId === 'b0000000-0000-0000-0000-000000000001') {
+      const defaultTeam = await this.sessionRepo.manager.findOne(Team, { where: {} });
+      if (defaultTeam) {
+        teamId = defaultTeam.id;
+      }
+    }
+
+    if (!coachId || coachId === 'd0000000-0000-0000-0000-000000000001') {
+      const defaultCoach = await this.sessionRepo.manager.findOne(User, { where: {} });
+      if (defaultCoach) {
+        coachId = defaultCoach.id;
+      }
+    }
+
     const start = new Date(dto.start_datetime);
     const end = new Date(dto.end_datetime);
 
@@ -80,6 +96,13 @@ export class TrainingService {
    * Ambil daftar sesi latihan dengan pagination & filter
    */
   async getSessions(teamId: string, filters: FilterSessionDto) {
+    if (!teamId || teamId === 'b0000000-0000-0000-0000-000000000001') {
+      const defaultTeam = await this.sessionRepo.manager.findOne(Team, { where: {} });
+      if (defaultTeam) {
+        teamId = defaultTeam.id;
+      }
+    }
+
     const { status, start_date, end_date, page = 1, limit = 10 } = filters;
     const skip = (page - 1) * limit;
 
@@ -352,6 +375,13 @@ export class TrainingService {
    * Ambil metrik agregat performa latihan tim (Backend calculation)
    */
   async getTrainingStats(teamId: string) {
+    if (!teamId || teamId === 'b0000000-0000-0000-0000-000000000001') {
+      const defaultTeam = await this.sessionRepo.manager.findOne(Team, { where: {} });
+      if (defaultTeam) {
+        teamId = defaultTeam.id;
+      }
+    }
+
     const sessions = await this.sessionRepo.find({
       where: { team_id: teamId },
       relations: {
@@ -393,5 +423,55 @@ export class TrainingService {
       avgTeamRpe,
       totalPresencesRecorded: totalAttendanceEntries,
     };
+  }
+
+  /**
+   * Ekspor data presensi latihan ke format CSV
+   */
+  async exportAttendanceCsv(teamId: string, sessionId?: string): Promise<string> {
+    if (!teamId || teamId === 'b0000000-0000-0000-0000-000000000001') {
+      const defaultTeam = await this.sessionRepo.manager.findOne(Team, { where: {} });
+      if (defaultTeam) {
+        teamId = defaultTeam.id;
+      }
+    }
+
+    const qb = this.attendanceRepo
+      .createQueryBuilder('att')
+      .leftJoinAndSelect('att.training_session', 'training_session')
+      .leftJoinAndSelect('att.athlete', 'athlete')
+      .where('training_session.team_id = :teamId', { teamId });
+
+    if (sessionId) {
+      qb.andWhere('training_session.id = :sessionId', { sessionId });
+    }
+
+    qb.orderBy('training_session.session_date', 'DESC').addOrderBy('athlete.jersey_number', 'ASC');
+
+    const attendances = await qb.getMany();
+
+    const headers = [
+      'Tanggal Sesi',
+      'Target Sesi',
+      'Nama Atlet',
+      'Nomor Punggung',
+      'Jenis Kelamin',
+      'Status Kehadiran',
+      'Beban Latihan (RPE)',
+      'Catatan',
+    ];
+
+    const rows = attendances.map((a) => [
+      a.training_session?.session_date || '-',
+      `"${(a.training_session?.objective || '-').replace(/"/g, '""')}"`,
+      `"${(a.athlete?.full_name || '-').replace(/"/g, '""')}"`,
+      a.athlete?.jersey_number ?? '-',
+      a.athlete?.gender || '-',
+      a.status,
+      a.rpe ?? '-',
+      `"${(a.notes || '-').replace(/"/g, '""')}"`,
+    ]);
+
+    return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
   }
 }

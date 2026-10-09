@@ -9,13 +9,16 @@ import {
   Query,
   UseGuards,
   Request,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { TrainingService } from './training.service.js';
 import {
@@ -78,6 +81,25 @@ export class TrainingController {
       message: 'Statistik latihan tim berhasil dikalkulasi',
       data: stats,
     };
+  }
+
+  @Get('export/csv')
+  @ApiOperation({ summary: 'Ekspor rekap data presensi sesi latihan dalam format CSV' })
+  @ApiQuery({ name: 'session_id', required: false, description: 'ID Sesi Latihan spesifik (opsional)' })
+  @ApiResponse({ status: 200, description: 'File CSV berhasil digenerate dan diunduh' })
+  async exportAttendanceCsv(
+    @Res() res: Response,
+    @Query('session_id') sessionId?: string,
+  ) {
+    const teamId = 'b0000000-0000-0000-0000-000000000001';
+    const csvContent = await this.trainingService.exportAttendanceCsv(teamId, sessionId);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="laporan_presensi_korfball_bantul.csv"',
+    );
+    return res.send(csvContent);
   }
 
   @Get('sessions/:id')
